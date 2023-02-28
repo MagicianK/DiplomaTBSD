@@ -5,21 +5,26 @@ using UnityEngine;
 
 public class MouseController : MonoBehaviour
 {
+    public GameObject cursor;
     public float speed;
+
     // public GameObject cursor;
     public GameObject currentHover {get; private set; } 
     public GameObject currentClicked {get; private set; } 
     private PathFinding pathfinder;
-    
+    private RangeFinder rangeFinder;
     [SerializeField] private Unit unitPrefab;
     private Unit unit;
     private List<TileCube> path = new List<TileCube>();
+    private List<TileCube> inRangeTiles = new List<TileCube>();
     // Start is called before the first frame update
     void Start()
     {
         currentHover = null;
         currentClicked = null;
         pathfinder = new PathFinding();
+        rangeFinder = new RangeFinder();
+        path = new List<TileCube>();
     }
     void LateUpdate() {
         var focusedTileHit = GetFocusedTile();
@@ -28,68 +33,93 @@ public class MouseController : MonoBehaviour
         {
             TileCube tileCube = focusedTileHit.Value.collider.gameObject.GetComponent<TileCube>();
             GameObject tileObj = focusedTileHit.Value.collider.gameObject;
-            // cursor.transform.position = tileCube.transform.position;
-            // cursor.gameObject.GetComponent<MeshRenderer>().sortingOrder = tileCube.GetComponent<MeshRenderer>().sortingOrder;
-
+ 
             if(Input.GetMouseButton(0))
             {
+                cursor.transform.position = new Vector3(tileCube.transform.position.x, tileCube.transform.position.y + 0.55f, tileCube.transform.position.z);
+                cursor.GetComponent<Cursor>().SetFocusedTile(tileCube);
                 tileObj.layer = LayerMask.NameToLayer("Clicked");
                 
                 if(unit == null)
                 {
                     unit = Instantiate(unitPrefab).GetComponent<Unit>();
                     PositionCharacterOnTile(tileCube);
+                    tileCube.unit = unit;
+                    GetInRangeTiles();
                 }
-                else
+                else if(tileCube != null)
                 {
                     path = pathfinder.FindPath(unit.standingOn, tileCube);
-
                 }
             }
-        }  
-        if (path.Count > 0)
+        } 
+        if (path.Count > 0 && GetInRangeTiles().Contains(cursor.GetComponent<Cursor>().GetFocusedTile()) && !unit.isMoving)
         {
+            unit.isMoving = true;
             MoveAlongPath();
         }
     }
+    private List<TileCube> GetInRangeTiles()
+    {
+        foreach (var item in inRangeTiles)
+        {
+            item.ChangeLayer(LayerMask.NameToLayer("Tile"));
+        }
 
+        inRangeTiles = rangeFinder.GetTilesRange(unit.standingOn, 3);
+
+        foreach (var item in inRangeTiles)
+        {
+            item.ChangeLayer(LayerMask.NameToLayer("RangeShow"));
+        }
+        return inRangeTiles;
+    }
     private void MoveAlongPath()
     {
         var step = speed * Time.deltaTime;
         
         var yIndex = path[0].transform.position.y;
 
-        unit.transform.position = Vector2.MoveTowards(unit.transform.position, path[0].transform.position, step);
+        unit.transform.position = Vector3.MoveTowards(unit.transform.position, path[0].transform.position, step);
         unit.transform.position = new Vector3(unit.transform.position.x, yIndex, unit.transform.position.z);
 
-        if(Vector2.Distance(unit.transform.position, path[0].transform.position) < 0.00001f)
+        if(Vector3.Distance(unit.transform.position, path[0].transform.position) < 0.00001f)
         {
             PositionCharacterOnTile(path[0]);
             path.RemoveAt(0);
         }
+
+        if(path.Count == 0 && !unit.isMoving)
+        {
+            GetInRangeTiles(); 
+        }
+        unit.isMoving = false;
     }
 
     private void PositionCharacterOnTile(TileCube tile)
     {
-        unit.transform.position = new Vector3(tile.transform.position.x, tile.transform.position.y + 1.5f, tile.transform.position.z+0.0001f);
-        unit.GetComponent<MeshRenderer>().sortingOrder = tile.GetComponent<MeshRenderer>().sortingOrder;
+        unit.transform.position = new Vector3(tile.transform.position.x, tile.transform.position.y, tile.transform.position.z);
+        //unit.GetComponent<MeshRenderer>().sortingOrder = tile.GetComponent<MeshRenderer>().sortingOrder;
         unit.standingOn = tile;
     }
     // Update is called once per frame
     void Update()
     {   
         RaycastHit hit;
+        LayerMask previousLayer = LayerMask.NameToLayer("Tile");
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out hit, LayerMask.GetMask("Tile")))
         {
+        
             if (currentHover == null)
             {
                 currentHover = hit.collider.gameObject;
+                previousLayer = currentHover.layer;
                 hit.collider.gameObject.layer = LayerMask.NameToLayer("Hover");
             }
             if (currentHover != hit.collider.gameObject)
             {
-                currentHover.layer = LayerMask.NameToLayer("Tile");
+                currentHover.layer = previousLayer;
                 currentHover = hit.collider.gameObject;
                 hit.collider.gameObject.layer = LayerMask.NameToLayer("Hover");
             }

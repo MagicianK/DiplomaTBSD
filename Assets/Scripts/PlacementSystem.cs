@@ -35,7 +35,7 @@ public class PlacementSystem : MonoBehaviour
                 Debug.Log(" Hover: ", tile);
                 Vector3 newpos = new Vector3(tile.transform.position.x, tile.transform.position.y + 1.5f,tile.transform.position.z);
                 // TODO: INSTEAD OF CALLING INSTANTIATE WE SHALL CALL SPAWN METHOD OF UNIT CLASS 
-                
+                tile.GetComponent<TileCube>().isBlocked = true;
                 GameObject obj = Instantiate(prefab1, newpos, Quaternion.identity);
                // tile.GetComponent<UnitableObject>().unit = obj;
             }

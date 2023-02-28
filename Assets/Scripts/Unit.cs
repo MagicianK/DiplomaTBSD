@@ -6,8 +6,12 @@ public class Unit : MonoBehaviour
 {
     public int team;
     public TileCube standingOn;
+    public bool isMoving {get; set;}
     // TODO: MAKE SPAWN METHOD TO SPAWN A UNIT
     // Start is called before the first frame update
+    private void Awake() {
+        isMoving = false;
+    }
     void Start()
     {
         
@@ -17,10 +21,5 @@ public class Unit : MonoBehaviour
     void Update()
     {
         
-    }
-
-    void Spawn(Vector3 position)
-    {
-        GameObject obj = Instantiate(gameObject, position, Quaternion.identity);
     }
 }

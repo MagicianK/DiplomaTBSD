@@ -37,6 +37,7 @@ public class Board : MonoBehaviour
                 {
                     var tileLocation = new Vector3Int(x, y, z);
                     var tilePosition = new Vector2Int(x, y);
+                    
                     if (tileMap.HasTile(tileLocation) && !map.ContainsKey(tilePosition))
                     {
                         var tileCube = Instantiate(tileCubePrefab, groundTilesContainer.transform);
@@ -61,5 +62,42 @@ public class Board : MonoBehaviour
             return;
         }
     }
+    public List<TileCube> GetNeighbourTiles(TileCube currentTile)
+    {
+        List<TileCube> neighbours = new List<TileCube>();
 
+        // TOP
+        Vector2Int locationToCheck = new Vector2Int(currentTile.gridLocation.x, currentTile.gridLocation.y + 1);
+
+        if(map.ContainsKey(locationToCheck))
+        {
+            neighbours.Add(map[locationToCheck]);
+        }
+
+        // BOTTOM
+        locationToCheck = new Vector2Int(currentTile.gridLocation.x, currentTile.gridLocation.y - 1);
+
+        if(map.ContainsKey(locationToCheck))
+        {
+            neighbours.Add(map[locationToCheck]);
+        }
+
+        // RIGHT
+        locationToCheck = new Vector2Int(currentTile.gridLocation.x + 1, currentTile.gridLocation.y);
+
+        if(map.ContainsKey(locationToCheck))
+        {
+            neighbours.Add(map[locationToCheck]);
+        }
+
+        // LEFT
+        locationToCheck = new Vector2Int(currentTile.gridLocation.x - 1, currentTile.gridLocation.y);
+
+        if(map.ContainsKey(locationToCheck))
+        {
+            neighbours.Add(map[locationToCheck]);
+        }
+
+        return neighbours;
+    }
 }
