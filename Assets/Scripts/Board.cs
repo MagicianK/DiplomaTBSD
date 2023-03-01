@@ -6,14 +6,18 @@ using UnityEngine.Tilemaps;
 public class Board : MonoBehaviour
 {
     private static Board _instance;
-    public static Board instance {get {return _instance;}}
+    public static Board instance
+    { get { return _instance; } }
     private Camera currentCamera;
     public TileCube tileCubePrefab;
     public GameObject groundTilesContainer;
     //[SerializeField] private Tilemap tilemap;
     private Vector2Int currentHover;
+
     public Dictionary<Vector2Int, TileCube> map;
-    private void Awake() {
+
+    private void Awake()
+    {
         if (_instance != null && _instance != this)
         {
             Destroy(this.gameObject);
@@ -23,13 +27,14 @@ public class Board : MonoBehaviour
             _instance = this;
         }
     }
-    void Start()
+
+    private void Start()
     {
         map = new Dictionary<Vector2Int, TileCube>();
         var tileMap = gameObject.GetComponentInChildren<Tilemap>();
         BoundsInt bounds = tileMap.cellBounds;
         Debug.Log(bounds);
-        for(int y = bounds.max.y; y > bounds.min.y; y--)
+        for (int y = bounds.max.y; y > bounds.min.y; y--)
         {
             for (int z = bounds.min.z; z < bounds.max.z; z++)
             {
@@ -37,7 +42,7 @@ public class Board : MonoBehaviour
                 {
                     var tileLocation = new Vector3Int(x, y, z);
                     var tilePosition = new Vector2Int(x, y);
-                    
+
                     if (tileMap.HasTile(tileLocation) && !map.ContainsKey(tilePosition))
                     {
                         var tileCube = Instantiate(tileCubePrefab, groundTilesContainer.transform);
@@ -52,16 +57,17 @@ public class Board : MonoBehaviour
             }
         }
     }
-    
+
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if(!currentCamera)
+        if (!currentCamera)
         {
             currentCamera = Camera.current;
             return;
         }
     }
+
     public List<TileCube> GetNeighbourTiles(TileCube currentTile)
     {
         List<TileCube> neighbours = new List<TileCube>();
@@ -69,7 +75,7 @@ public class Board : MonoBehaviour
         // TOP
         Vector2Int locationToCheck = new Vector2Int(currentTile.gridLocation.x, currentTile.gridLocation.y + 1);
 
-        if(map.ContainsKey(locationToCheck))
+        if (map.ContainsKey(locationToCheck))
         {
             neighbours.Add(map[locationToCheck]);
         }
@@ -77,7 +83,7 @@ public class Board : MonoBehaviour
         // BOTTOM
         locationToCheck = new Vector2Int(currentTile.gridLocation.x, currentTile.gridLocation.y - 1);
 
-        if(map.ContainsKey(locationToCheck))
+        if (map.ContainsKey(locationToCheck))
         {
             neighbours.Add(map[locationToCheck]);
         }
@@ -85,7 +91,7 @@ public class Board : MonoBehaviour
         // RIGHT
         locationToCheck = new Vector2Int(currentTile.gridLocation.x + 1, currentTile.gridLocation.y);
 
-        if(map.ContainsKey(locationToCheck))
+        if (map.ContainsKey(locationToCheck))
         {
             neighbours.Add(map[locationToCheck]);
         }
@@ -93,7 +99,7 @@ public class Board : MonoBehaviour
         // LEFT
         locationToCheck = new Vector2Int(currentTile.gridLocation.x - 1, currentTile.gridLocation.y);
 
-        if(map.ContainsKey(locationToCheck))
+        if (map.ContainsKey(locationToCheck))
         {
             neighbours.Add(map[locationToCheck]);
         }

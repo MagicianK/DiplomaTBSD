@@ -6,20 +6,21 @@ public class Unit : MonoBehaviour
 {
     public int team;
     public TileCube standingOn;
-    public bool isMoving {get; set;}
+    public bool isMoving { get; set; } = false;
+    public bool isChosen { get; set; } = false;
+
     // TODO: MAKE SPAWN METHOD TO SPAWN A UNIT
     // Start is called before the first frame update
-    private void Awake() {
-        isMoving = false;
-    }
-    void Start()
+    private void Awake()
     {
-        
+    }
+
+    private void Start()
+    {
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        
     }
 }
