@@ -32,27 +32,42 @@ public class MouseController : MonoBehaviour
 
     private void LateUpdate()
     {
-        List<TileCube> inRangeTiles = unit == null ? null : GetInRangeTiles();
+        inRangeTiles = unit == null ? inRangeTiles : GetInRangeTiles();
         var focusedTileHit = GetFocusedTile();
+        var focusedUnitHit = GetFocusedUnit();
+
+        if (focusedUnitHit.HasValue)
+        {
+            Unit currentUnit = focusedUnitHit.Value.collider.GetComponentInParent<Unit>();
+            if (!Input.GetMouseButtonUp(0))
+                return;
+
+            if (currentUnit)
+            {
+                chooseUnit(currentUnit.standingOn);
+            }
+        }
 
         if (focusedTileHit.HasValue)
         {
             TileCube tileCube = focusedTileHit.Value.collider.gameObject.GetComponent<TileCube>();
             GameObject tileObj = focusedTileHit.Value.collider.gameObject;
+
             if (tileCube == null)
                 return;
 
-            if (!Input.GetMouseButtonDown(0))
+            if (!Input.GetMouseButtonUp(0))
                 return;
 
-            if (unit == null)
+            if (tileCube.unit)
             {
-                unit = Instantiate(unitPrefab).GetComponent<Unit>();
-                PositionCharacterOnTile(tileCube);
-                tileCube.unit = unit;
-                GetInRangeTiles();
+                chooseUnit(tileCube);
             }
-            else if (!unit.isMoving)
+            else if (unit == null || inRangeTiles == null || !inRangeTiles.Contains(tileCube))
+            {
+                CreateUnit(tileCube);
+            }
+            else if (unit && unit.isChosen && !unit.isMoving)
             {
                 cursor.transform.position = new Vector3(tileCube.transform.position.x, tileCube.transform.position.y + 0.55f, tileCube.transform.position.z);
                 cursor.GetComponent<Cursor>().SetFocusedTile(tileCube);
@@ -60,11 +75,22 @@ public class MouseController : MonoBehaviour
                 path = pathfinder.FindPath(unit.standingOn, tileCube);
             }
         }
-        if (path.Count > 0 && inRangeTiles.Contains(cursor.GetComponent<Cursor>().GetFocusedTile()))
-        {
-            unit.isMoving = true;
-            MoveAlongPath();
-        }
+    }
+
+    private void chooseUnit(TileCube tileCube)
+    {
+        if (unit)
+            unit.isChosen = false;
+
+        unit = tileCube.unit;
+        unit.isChosen = true;
+    }
+
+    private void CreateUnit(TileCube tileCube)
+    {
+        unit = Instantiate(unitPrefab).GetComponent<Unit>();
+        PositionCharacterOnTile(tileCube);
+        chooseUnit(tileCube);
     }
 
     private List<TileCube> GetInRangeTiles()
@@ -112,14 +138,15 @@ public class MouseController : MonoBehaviour
         unit.transform.position = new Vector3(tile.transform.position.x, tile.transform.position.y, tile.transform.position.z);
         //unit.GetComponent<MeshRenderer>().sortingOrder = tile.GetComponent<MeshRenderer>().sortingOrder;
         unit.standingOn = tile;
+        tile.unit = unit;
     }
 
     // Update is called once per frame
     private void Update()
     {
         RaycastHit hit;
-        LayerMask previousLayer = LayerMask.NameToLayer("Tile");
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        LayerMask previousLayer = LayerMask.NameToLayer("Tile");
         if (Physics.Raycast(ray, out hit, LayerMask.GetMask("Tile")))
         {
             if (currentHover == null)
@@ -143,6 +170,12 @@ public class MouseController : MonoBehaviour
                 currentHover = null;
             }
         }
+
+        if (path.Count > 0 && inRangeTiles.Contains(cursor.GetComponent<Cursor>().GetFocusedTile()))
+        {
+            unit.isMoving = true;
+            MoveAlongPath();
+        }
     }
 
     public RaycastHit? GetFocusedTile()
@@ -150,6 +183,17 @@ public class MouseController : MonoBehaviour
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out hit, LayerMask.GetMask("Hover")))
+        {
+            return hit;
+        }
+        return null;
+    }
+
+    public RaycastHit? GetFocusedUnit()
+    {
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out hit, LayerMask.GetMask("Unit")))
         {
             return hit;
         }
