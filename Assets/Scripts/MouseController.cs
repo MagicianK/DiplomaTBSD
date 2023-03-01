@@ -7,18 +7,21 @@ public class MouseController : MonoBehaviour
 {
     public GameObject cursor;
     public float speed;
+    public int movementRange = 3;
 
     // public GameObject cursor;
-    public GameObject currentHover {get; private set; } 
-    public GameObject currentClicked {get; private set; } 
+    public GameObject currentHover { get; private set; }
+
+    public GameObject currentClicked { get; private set; }
     private PathFinding pathfinder;
     private RangeFinder rangeFinder;
     [SerializeField] private Unit unitPrefab;
     private Unit unit;
     private List<TileCube> path = new List<TileCube>();
     private List<TileCube> inRangeTiles = new List<TileCube>();
+
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         currentHover = null;
         currentClicked = null;
@@ -26,74 +29,82 @@ public class MouseController : MonoBehaviour
         rangeFinder = new RangeFinder();
         path = new List<TileCube>();
     }
-    void LateUpdate() {
+
+    private void LateUpdate()
+    {
+        List<TileCube> inRangeTiles = unit == null ? null : GetInRangeTiles();
         var focusedTileHit = GetFocusedTile();
 
         if (focusedTileHit.HasValue)
         {
             TileCube tileCube = focusedTileHit.Value.collider.gameObject.GetComponent<TileCube>();
             GameObject tileObj = focusedTileHit.Value.collider.gameObject;
- 
-            if(Input.GetMouseButton(0))
+            if (tileCube == null)
+                return;
+
+            if (!Input.GetMouseButtonDown(0))
+                return;
+
+            if (unit == null)
+            {
+                unit = Instantiate(unitPrefab).GetComponent<Unit>();
+                PositionCharacterOnTile(tileCube);
+                tileCube.unit = unit;
+                GetInRangeTiles();
+            }
+            else if (!unit.isMoving)
             {
                 cursor.transform.position = new Vector3(tileCube.transform.position.x, tileCube.transform.position.y + 0.55f, tileCube.transform.position.z);
                 cursor.GetComponent<Cursor>().SetFocusedTile(tileCube);
                 tileObj.layer = LayerMask.NameToLayer("Clicked");
-                
-                if(unit == null)
-                {
-                    unit = Instantiate(unitPrefab).GetComponent<Unit>();
-                    PositionCharacterOnTile(tileCube);
-                    tileCube.unit = unit;
-                    GetInRangeTiles();
-                }
-                else if(tileCube != null)
-                {
-                    path = pathfinder.FindPath(unit.standingOn, tileCube);
-                }
+                path = pathfinder.FindPath(unit.standingOn, tileCube);
             }
-        } 
-        if (path.Count > 0 && GetInRangeTiles().Contains(cursor.GetComponent<Cursor>().GetFocusedTile()) && !unit.isMoving)
+        }
+        if (path.Count > 0 && inRangeTiles.Contains(cursor.GetComponent<Cursor>().GetFocusedTile()))
         {
             unit.isMoving = true;
             MoveAlongPath();
         }
     }
+
     private List<TileCube> GetInRangeTiles()
     {
         foreach (var item in inRangeTiles)
         {
-            item.ChangeLayer(LayerMask.NameToLayer("Tile"));
+            if (item.gameObject.layer != LayerMask.NameToLayer("Hover"))
+                item.ChangeLayer(LayerMask.NameToLayer("Tile"));
         }
 
-        inRangeTiles = rangeFinder.GetTilesRange(unit.standingOn, 3);
+        inRangeTiles = rangeFinder.GetTilesRange(unit.standingOn, movementRange);
 
         foreach (var item in inRangeTiles)
         {
-            item.ChangeLayer(LayerMask.NameToLayer("RangeShow"));
+            if (item.gameObject.layer != LayerMask.NameToLayer("Hover"))
+                item.ChangeLayer(LayerMask.NameToLayer("RangeShow"));
         }
         return inRangeTiles;
     }
+
     private void MoveAlongPath()
     {
         var step = speed * Time.deltaTime;
-        
+
         var yIndex = path[0].transform.position.y;
 
         unit.transform.position = Vector3.MoveTowards(unit.transform.position, path[0].transform.position, step);
         unit.transform.position = new Vector3(unit.transform.position.x, yIndex, unit.transform.position.z);
 
-        if(Vector3.Distance(unit.transform.position, path[0].transform.position) < 0.00001f)
+        if (Vector3.Distance(unit.transform.position, path[0].transform.position) < 0.00001f)
         {
             PositionCharacterOnTile(path[0]);
             path.RemoveAt(0);
         }
 
-        if(path.Count == 0 && !unit.isMoving)
+        if (path.Count == 0)
         {
-            GetInRangeTiles(); 
+            GetInRangeTiles();
+            unit.isMoving = false;
         }
-        unit.isMoving = false;
     }
 
     private void PositionCharacterOnTile(TileCube tile)
@@ -102,15 +113,15 @@ public class MouseController : MonoBehaviour
         //unit.GetComponent<MeshRenderer>().sortingOrder = tile.GetComponent<MeshRenderer>().sortingOrder;
         unit.standingOn = tile;
     }
+
     // Update is called once per frame
-    void Update()
-    {   
+    private void Update()
+    {
         RaycastHit hit;
         LayerMask previousLayer = LayerMask.NameToLayer("Tile");
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out hit, LayerMask.GetMask("Tile")))
         {
-        
             if (currentHover == null)
             {
                 currentHover = hit.collider.gameObject;
@@ -123,7 +134,6 @@ public class MouseController : MonoBehaviour
                 currentHover = hit.collider.gameObject;
                 hit.collider.gameObject.layer = LayerMask.NameToLayer("Hover");
             }
-            
         }
         else
         {
@@ -134,6 +144,7 @@ public class MouseController : MonoBehaviour
             }
         }
     }
+
     public RaycastHit? GetFocusedTile()
     {
         RaycastHit hit;
@@ -145,5 +156,3 @@ public class MouseController : MonoBehaviour
         return null;
     }
 }
-    
-
